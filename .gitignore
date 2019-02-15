@@ -1,0 +1,6 @@
+.DS_Store
+
+# Xcode
+# this ignores dummy workspace files in xcodeproj dir
+CoreImageFluidDynamics.xcodeproj/*
+!CoreImageFluidDynamics.xcodeproj/project.pbxproj
