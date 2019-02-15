@@ -16,7 +16,7 @@ class AdvectionFilter: CIFilter
 {
     var inputVelocity: CIImage?
     
-    let advectionKernel = CIKernel(string:
+    let advectionKernel = CIKernel(source:
         "kernel vec4 advection(sampler velocity) \n" +
         "{  \n" +
         "   vec2 d = destCoord(); \n" +
@@ -32,12 +32,12 @@ class AdvectionFilter: CIFilter
     override var outputImage : CIImage!
     {
         if let inputVelocity = inputVelocity,
-            advectionKernel = advectionKernel
+            let advectionKernel = advectionKernel
         {
             let arguments = [inputVelocity]
             let extent = inputVelocity.extent
         
-            return advectionKernel.applyWithExtent(extent,
+            return advectionKernel.apply(extent: extent,
                 roiCallback:
                 {
                     (index, rect) in
@@ -55,7 +55,7 @@ class DivergenceFilter: CIFilter
 {
     var inputVelocity: CIImage?
     
-    let divergenceKernel = CIKernel(string:
+    let divergenceKernel = CIKernel(source:
         "kernel vec4 divergence(sampler velocity) \n" +
         "{  \n" +
         "   vec2 d = destCoord(); \n" +
@@ -79,12 +79,12 @@ class DivergenceFilter: CIFilter
     override var outputImage : CIImage!
     {
         if let inputVelocity = inputVelocity,
-            divergenceKernel = divergenceKernel
+            let divergenceKernel = divergenceKernel
         {
             let arguments = [inputVelocity]
             let extent = inputVelocity.extent
             
-            return divergenceKernel.applyWithExtent(extent,
+            return divergenceKernel.apply(extent: extent,
                 roiCallback:
                 {
                     (index, rect) in
@@ -103,7 +103,7 @@ class JacobiFilter: CIFilter
     var inputDivergence: CIImage?
     var inputPressure: CIImage?
     
-    let jacobiKernel = CIKernel(string:
+    let jacobiKernel = CIKernel(source:
         "kernel vec4 jacobi(sampler divergence, sampler pressure) \n" +
         "{  \n" +
         "   vec2 d = destCoord(); \n" +
@@ -124,13 +124,13 @@ class JacobiFilter: CIFilter
     override var outputImage : CIImage!
     {
         if let inputDivergence = inputDivergence,
-            inputPressure = inputPressure,
-            jacobiKernel = jacobiKernel
+            let inputPressure = inputPressure,
+            let jacobiKernel = jacobiKernel
         {
             let arguments = [inputDivergence, inputPressure]
             let extent = inputDivergence.extent
             
-            return jacobiKernel.applyWithExtent(extent,
+            return jacobiKernel.apply(extent: extent,
                 roiCallback:
                 {
                     (index, rect) in
@@ -149,7 +149,7 @@ class SubtractPressureGradientFilter: CIFilter
     var inputVelocity: CIImage?
     var inputPressure: CIImage?
     
-    let subtractPressureGradientKernel = CIKernel(string:
+    let subtractPressureGradientKernel = CIKernel(source:
         "kernel vec4 subtractPressureGradient(sampler velocity, sampler pressure) \n" +
         "{  \n" +
         "   vec2 d = destCoord(); \n" +
@@ -171,13 +171,13 @@ class SubtractPressureGradientFilter: CIFilter
     override var outputImage : CIImage!
     {
         if let inputVelocity = inputVelocity,
-            inputPressure = inputPressure,
-            subtractPressureGradientKernel = subtractPressureGradientKernel
+            let inputPressure = inputPressure,
+            let subtractPressureGradientKernel = subtractPressureGradientKernel
         {
             let arguments = [inputVelocity, inputPressure]
             let extent = inputVelocity.extent
             
-            return subtractPressureGradientKernel.applyWithExtent(extent,
+            return subtractPressureGradientKernel.apply(extent: extent,
                 roiCallback:
                 {
                     (index, rect) in

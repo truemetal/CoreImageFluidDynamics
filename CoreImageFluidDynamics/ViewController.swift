@@ -14,8 +14,8 @@ let rect640x640 = CGRect(x: 0, y: 0, width: 640, height: 640)
 
 class ViewController: UIViewController
 {
-    let velocityAccumulator = CIImageAccumulator(extent: rect640x640, format: kCIFormatARGB8)
-    let pressureAccumulator = CIImageAccumulator(extent: rect640x640, format: kCIFormatARGB8)
+    let velocityAccumulator = CIImageAccumulator(extent: rect640x640, format: CIFormat.ARGB8)
+    let pressureAccumulator = CIImageAccumulator(extent: rect640x640, format: CIFormat.ARGB8)
     
     let advectionFilter = AdvectionFilter()
     let divergenceFilter = DivergenceFilter()
@@ -28,26 +28,26 @@ class ViewController: UIViewController
         
         let imageView = GLKView()
         
-        imageView.layer.borderColor = UIColor.grayColor().CGColor
+        imageView.layer.borderColor = UIColor.gray.cgColor
         imageView.layer.borderWidth = 1
         imageView.layer.shadowOffset = CGSize(width: 0, height: 0)
         imageView.layer.shadowOpacity = 0.75
         imageView.layer.shadowRadius = 5
         
-        imageView.context = self.eaglContext
+        imageView.context = self.eaglContext!
         imageView.delegate = self
         
         return imageView
     }()
     
-    let eaglContext = EAGLContext(API: .OpenGLES2)
+    let eaglContext = EAGLContext(api: .openGLES2)
     
     lazy var ciContext: CIContext =
     {
         [unowned self] in
         
-        return CIContext(EAGLContext: self.eaglContext,
-            options: [kCIContextWorkingColorSpace: NSNull()])
+        return CIContext(eaglContext: self.eaglContext!,
+                         options: [.workingColorSpace: NSNull()])
     }()
     
     override func viewDidLoad()
@@ -56,13 +56,13 @@ class ViewController: UIViewController
         
         view.addSubview(imageView)
         
-        velocityAccumulator.setImage(CIImage(color: CIColor(red: 0.5, green: 0.5, blue: 0.0)))
+        velocityAccumulator?.setImage(CIImage(color: CIColor(red: 0.5, green: 0.5, blue: 0.0)))
         
-        let displayLink = CADisplayLink(target: self, selector: Selector("step"))
-        displayLink.addToRunLoop(NSRunLoop.mainRunLoop(), forMode: NSDefaultRunLoopMode)
+        let displayLink = CADisplayLink(target: self, selector: #selector(ViewController.step))
+        displayLink.add(to: RunLoop.main, forMode: RunLoop.Mode.default)
     }
     
-    func step()
+    @objc func step()
     {
         imageView.setNeedsDisplay()
     }
@@ -74,7 +74,7 @@ class ViewController: UIViewController
             size: CGSize(width: rect640x640.width, height: rect640x640.height))
     }
     
-    override func touchesMoved(touches: Set<UITouch>, withEvent event: UIEvent?)
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?)
     {
         guard let touch = touches.first else
         {
@@ -82,21 +82,21 @@ class ViewController: UIViewController
         }
 
         let locationInView = CGPoint(
-            x: touch.locationInView(imageView).x,
-            y: 640 - touch.locationInView(imageView).y)
+            x: touch.location(in: imageView).x,
+            y: 640 - touch.location(in: imageView).y)
 
         let previousLocationInView = CGPoint(
-            x: touch.previousLocationInView(imageView).x,
-            y: 640 - touch.previousLocationInView(imageView).y)
+            x: touch.previousLocation(in: imageView).x,
+            y: 640 - touch.previousLocation(in: imageView).y)
 
         let red = CIColor(red: 1, green: 0, blue: 0)
                 
         let pressureImage = CIImage(color: red)
-            .imageByCroppingToRect(CGRect(
+            .cropped(to: CGRect(
                 origin: locationInView.offset(20),
                 size: CGSize(width: 40, height: 40)))
-            .imageByApplyingFilter("CIGaussianBlur",
-                withInputParameters: [kCIInputRadiusKey: 10])
+            .applyingFilter("CIGaussianBlur",
+                parameters: [kCIInputRadiusKey: 10])
 
         let deltaX = locationInView.x - previousLocationInView.x
         let deltaY = locationInView.y - previousLocationInView.y
@@ -107,24 +107,24 @@ class ViewController: UIViewController
         let directionColor = CIColor(red: directionX, green: directionY, blue: 0)
                 
         let directionImage = CIImage(color: directionColor)
-            .imageByCroppingToRect(CGRect(
+            .cropped(to: CGRect(
                 origin: locationInView.offset(15),
                 size: CGSize(width: 30, height: 30)))
-            .imageByApplyingFilter("CIGaussianBlur",
-                withInputParameters: [kCIInputRadiusKey: 5])
+            .applyingFilter("CIGaussianBlur",
+                parameters: [kCIInputRadiusKey: 5])
 
-        velocityAccumulator.setImage(directionImage
-            .imageByCompositingOverImage(velocityAccumulator.image()))
+        velocityAccumulator?.setImage(directionImage
+            .composited(over: (velocityAccumulator?.image())!))
 
-        pressureAccumulator.setImage(pressureImage
-            .imageByCompositingOverImage(pressureAccumulator.image()))
+        pressureAccumulator?.setImage(pressureImage
+            .composited(over: (pressureAccumulator?.image())!))
     }
     
 }
 
 extension CGPoint
 {
-    func offset(delta: CGFloat) -> CGPoint
+    func offset(_ delta: CGFloat) -> CGPoint
     {
         return CGPoint(x: self.x - delta, y: self.y - delta)
     }
@@ -134,9 +134,9 @@ extension CGPoint
 
 extension ViewController: GLKViewDelegate
 {
-    func glkView(view: GLKView, drawInRect rect: CGRect)
+    func glkView(_ view: GLKView, drawIn rect: CGRect)
     {
-        advectionFilter.inputVelocity = velocityAccumulator.image()
+        advectionFilter.inputVelocity = velocityAccumulator?.image()
         
         divergenceFilter.inputVelocity = advectionFilter.outputImage!
 
@@ -144,24 +144,23 @@ extension ViewController: GLKViewDelegate
         
         for _ in 0 ... 3
         {
-            jacobiFilter.inputPressure = pressureAccumulator.image()
+            jacobiFilter.inputPressure = pressureAccumulator?.image()
             
-            pressureAccumulator.setImage(jacobiFilter.outputImage)
+            pressureAccumulator?.setImage(jacobiFilter.outputImage)
         }
         
-        subtractPressureGradientFilter.inputPressure = pressureAccumulator.image()
+        subtractPressureGradientFilter.inputPressure = pressureAccumulator?.image()
         subtractPressureGradientFilter.inputVelocity = advectionFilter.outputImage
         
-        velocityAccumulator.setImage(subtractPressureGradientFilter.outputImage!)
+        velocityAccumulator?.setImage(subtractPressureGradientFilter.outputImage!)
         
-        let finalImage = pressureAccumulator.image()
-            .imageByApplyingFilter("CIMaximumComponent", withInputParameters: nil)
+        let finalImage = pressureAccumulator?.image()
+            .applyingFilter("CIMaximumComponent", parameters: [:])
    
-        ciContext.drawImage(finalImage,
-            inRect: CGRect(x: 0, y: 0,
+        ciContext.draw(finalImage!,
+            in: CGRect(x: 0, y: 0,
                 width: imageView.drawableWidth,
                 height: imageView.drawableHeight),
-            fromRect: rect640x640)
+            from: rect640x640)
     }
 }
-
